@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<head>
+	<meta charset="utf-8">
+	<title>Knockout JS &middot; Todo App</title>
+	<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.css" type="text/css">
+	<link rel="stylesheet" href="assets/css/todo.css" type="text/css">
+</head>
+<body>
+	<div id="container">
+		<div id="todos-app">
+			<h2>Todos</h2>
+			<ul data-bind="foreach: filteredTodos">
+				<li><input type="checkbox" data-bind="checked: completed"> <span data-bind="text: title, css: {completed: completed}"></span>  <a href="" class="remove" data-bind="click: $parent.remove">X</a></li>
+			</ul>
+			<form data-bind="submit: addTodo">
+				<input type="text" placeholder="Add item" data-bind="value: currentTodo"> <button type="submit">Add item</button>
+			</form>
+		</div>
+		<div class="filters">
+			<strong>Fiter By:</strong>
+			<a href="#all" data-bind="css: {active: showFilter() === 'all'}">All</a>
+			<a href="#active" data-bind="css: {active: showFilter() === 'active'}">Active</a>
+			<a href="#completed" data-bind="css: {active: showFilter() === 'completed'}">Completed</a>
+		</div>
+		<!-- <pre data-bind="text: ko.toJSON($data, null, 2)"></pre> -->
+		
+	</div>
+<script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/sammy.js/0.7.4/sammy.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/knockout/3.0.0/knockout-min.js"></script>
+<script>
+(function () {
+	
+	"use strict";
+	
+	var Todo = function (title, completed) {
+		this.title = ko.observable(title);
+		this.completed = ko.observable(completed);
+	}
+	
+	function TodoList(todos) {
+		this.currentTodo = ko.observable();
+		this.todos = ko.observableArray(ko.utils.arrayMap(todos, function (todo) {
+			return new Todo(todo.title, todo.completed);
+		}));
+		this.showFilter = ko.observable();
+		
+		// methods
+		this.addTodo = function () {
+			if (this.currentTodo() !== "") {
+				this.todos.push(new Todo(this.currentTodo(), false));
+				this.currentTodo("");
+			}
+		};
+		
+		this.remove = function (todo) {
+			this.todos.remove(todo)
+		}.bind(this);
+		
+		this.filteredTodos = ko.computed(function () {
+			switch(this.showFilter()) {
+				case "active":
+					return ko.utils.arrayFilter(this.todos(), function (todo) {
+						return !todo.completed();
+					});
+				case "completed":
+					return ko.utils.arrayFilter(this.todos(), function (todo) {
+						return todo.completed();
+					});
+				default:
+					return this.todos();	
+			}
+		}.bind(this));
+		
+		// dirty checking for saving / changing todos
+		ko.computed(function () {
+			localStorage.setItem('todos-app', ko.toJSON(this.todos));
+		}.bind(this)).extend({
+			throttle: 500 
+		});
+	}
+	
+	var todos = ko.utils.parseJson(localStorage.getItem('todos-app'));
+	var viewModel = new TodoList(todos || []);
+	ko.applyBindings(viewModel);
+	
+	Sammy(function () {
+		this.get('#:filter', function () {
+			viewModel.showFilter(this.params.filter);
+		});
+		this.get('', function () {
+			this.app.runRoute('get', '#all');
+		});
+	}).run();
+	
+}());
+</script>
+</body>
+</html>

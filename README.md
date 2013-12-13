@@ -1,4 +1,4 @@
 todo-app
 ========
 
-A simple todo list made with knockout and sammy.
+A simple todo list made with Knockout and Sammy (for routing).
